@@ -17,8 +17,16 @@ class cat_linkedlist:
         self.tail = None
     
     def __str__(self):
-        pass
-
+        cats = ""
+        current = self.head
+        if current is None:
+            print("Список пуст.")
+            return
+        while current is not None:
+            cats += current.name + " "
+            current = current.next
+        return cats
+    
     def add(self, cat_name):
         
         #Мы создаём переменную в которой будем хранить сылку на новый созданный узел
@@ -39,14 +47,16 @@ class cat_linkedlist:
         else:
             current = self.head
             while current.next is not None:
-                curennt = current.next
+                current = current.next
             current.next=newCat
 
 
-Cats = cat_linkedlist()
-Cats.add("Барсик")
-print(Cats.head)
-Cats.add("Соня")
-Cats.add("Гуманоид")
-Cats.add("Ирокез")
-Cats.add("Добрый")
+CATS = cat_linkedlist()
+
+CATS.add("Барсик")
+CATS.add("Соня")
+CATS.add("Гуманоид")
+CATS.add("Ирокез")
+CATS.add("Добрый")
+
+print(CATS)
