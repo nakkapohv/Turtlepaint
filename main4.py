@@ -2,7 +2,7 @@
 is_running = True
 
 while is_running:
-    raw = input("Программа для проверки DivisionByZero, Выход или продолжить\n")
+    raw = input("Программа для проверки DivisionByZero, Выход или Продолжить\n")
     
     if raw == exit:
         is_running = False
