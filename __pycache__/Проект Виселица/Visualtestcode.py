@@ -63,73 +63,73 @@ class Hangman():
         #Простыми словами если пользователь угадал нужную букву, то она открывается на нужном месте
         index_positions = [index for index, item in enumerate(self.secret_word) if item == guess_letter]
         for i in index_positions: #Перебираем все найденные позиции
-            #Далее мы указываем куда встать нашим угаданным буквам по индексам
+            #Далее мы указываем куда встать нашим угаданным буквам 
             self.guessed_word = self.guessed_word[0:i] + guess_letter + self.guessed_word[i+1:] 
-        screen.fill(pygame.Color(self.background_color), (10, 500, 390, 20)) 
+        screen.fill(pygame.Color(self.background_color), (10, 370, 390, 20)) 
 
 
-    def _wrong_guess(self, guess_letter):
-        self.wrong_guesses.append(guess_letter)
-        self.wrong_guess_count += 1
-        self._man_pieces()
+    def _wrong_guess(self, guess_letter): #Эта функция будет вызывать когда пользователь не угадал букву
+        self.wrong_guesses.append(guess_letter) #Список который будет хранить буквы, которые не правильно угаданы
+        self.wrong_guess_count += 1 #Переменная которая считает, сколько неправильных догадок 
+        self._man_pieces() #Вызываем отрисовку человечка
 
 
-    def _guess_taker(self, guess_letter):
-        if guess_letter in russian_letters:
-            if guess_letter in self.secret_word and guess_letter not in self.guessed_word:
-                self._right_guess(guess_letter)
-            elif guess_letter not in self.secret_word and guess_letter not in self.wrong_guesses:
+    def _guess_taker(self, guess_letter): #Эта функкция будет вызваться когда мы вводим букву
+        if guess_letter in russian_letters: #Говорим что используем русскую кириллицу 
+            if guess_letter in self.secret_word and guess_letter not in self.guessed_word:#Если все условия соблюдены 
+                self._right_guess(guess_letter) #Вызываем появление угаданной буквы
+            elif guess_letter not in self.secret_word and guess_letter not in self.wrong_guesses: #Проверка, если буквы нет в слове или не была ли она добавлена в список не правильных
                 self._wrong_guess(guess_letter)
 
 
-    def _message(self):
-        if self.guessed_word == self.secret_word:
-            self.taking_guess = False
+    def _message(self): #Проверка состояния игры и отрабражения слова
+        if self.guessed_word == self.secret_word: #Проверка выиграл ли игрок
+            self.taking_guess = False #Если проиграл, то прекращает игру
             screen.fill(pygame.Color(0,0,79), (40, 218, 320, 30))
             message = self.font.render("Вы победили!!", True, (255,235,0))
-            screen.blit(message,(152,224))
+            screen.blit(message,(152,224)) #Отрисовка сообщения о том что мы выиграли
             
         elif self.wrong_guess_count == 6:
-            self.taking_guess = False
+            self.taking_guess = False #Есл мы 6 раз ответили неверно, то игра заканчивается
             screen.fill(pygame.Color("grey"), (40, 218, 320, 30))
             message = self.font.render("   Вы проиграли!!", True, (150,0,10))
-            screen.blit(message,(78,224))
-            # shows the secret word if the player lose
-            word = self.font.render(f"слово: {self.secret_word}", True, (255,255,255))
-            screen.blit(word,(10,300))
+            screen.blit(message,(78,224)) #Отрисовка сообщения о том что мы проиграли
 
-        if not self.taking_guess:
+            word = self.font.render(f"слово: {self.secret_word}", True, (255,255,255))
+            screen.blit(word,(10,300)) #Отрисовка с загаданным словом, появляется когда мы проиграли
+
+        if not self.taking_guess: #Срабатывает когда мы выиграли или проиграли
             screen.fill(pygame.Color(self.background_color), (35, 460, 390, 20))
 
 
     def main(self):
-        screen.fill(self.background_color)
-        self._gallow()
-        instructions = self.font.render('Введите любую букву', True, (125,0,0))
-        screen.blit(instructions,(35,460))
+        screen.fill(self.background_color) #Заливаем весь экран заданный нами цветом
+        self._gallow() #Риуем висилицу 
+        instructions = self.font.render('Введите любую букву', True, (125,0,0)) #Выводим текст на экран (Введите любую букву)
+        screen.blit(instructions,(35,460)) #Ставляем нужный нам текст по координатам
 
-        while self.running:
-            guessed_word = self.font.render(f"Слово: {self.guessed_word}", True, (0,0,0))
-            screen.blit(guessed_word,(10,370))
+        while self.running: #Запуска цикл
+            guessed_word = self.font.render(f"Слово: {self.guessed_word}", True, (0,0,0)) 
+            screen.blit(guessed_word,(10,370)) #Создаем изображение строки с текущим состоянием угаданного слова
             wrong_guesses = self.font.render(f"Ошибки: {' '.join(map(str, self.wrong_guesses))}", True, (0,0,0))
-            screen.blit(wrong_guesses,(10,420))
+            screen.blit(wrong_guesses,(10,420)) #Создаём строку с перечнем неправильных букв
 
-            self._message()
+            self._message() #Вызываем при допольнительный сообщениях (О победе, о поражениях)
         
             for self.event in pygame.event.get():
                 if self.event.type == pygame.QUIT:
-                    self.running = False
+                    self.running = False #Выход из программы и цикла, завершить игру в любой момент
 
-                elif self.event.type == pygame.KEYDOWN:
-                    if self.taking_guess:
-                        self._guess_taker(self.event.unicode)
+                elif self.event.type == pygame.KEYDOWN: #Вызывается когда мы нажимаем любую клавишу на клавиатуры
+                    if self.taking_guess: #Контролирует можно ли сейчас вводить буквы
+                        self._guess_taker(self.event.unicode) #Делаем так чтобы заглавные и строчные буквы подходили в любом случае
 
-            pygame.display.flip()
-            self.FPS.tick(60)
+            pygame.display.flip() #Обновляет весь экран целиком, используется для отобрежния измененй
+            self.FPS.tick(60) #ставил лок и контроль частоты кадров (ФПС)
 
-        pygame.quit()
+        pygame.quit() #Заверашем работу(выходим)
 
 
-if __name__ =="__main__":
-    h = Hangman()
-    h.main()
+if __name__ =="__main__": #Запущен ли скрипт напрямую (а не импортирован как модуль)
+    h = Hangman() #Класс самой игры, вызывается
+    h.main() #Вызываем саму игру, запускаем
