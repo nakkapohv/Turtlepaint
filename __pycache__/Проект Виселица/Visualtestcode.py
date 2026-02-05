@@ -18,7 +18,7 @@ class Hangman():
             #encoding= "UTF-8" - кодировка файла, чтобы правильно читать символы
             words = file.read().split("\n") #Читаем всё содержимое файла, как строку и разделяем строку по символу и переносим строки, наши слова становятся списком
             self.secret_word = random.choice(words) #Выбираем случайный элемент из списка, случайное слово из файла
-            self.guessed_word = "*" * len(self.secret_word) #Создаём строку состоющую из звёздочек, длиной равной длине из загаданного слова (отображение прогресса)
+            self.guessed_word = "_" * len(self.secret_word) #Создаём строку состоющую из звёздочек, длиной равной длине из загаданного слова (отображение прогресса)
         
         self.wrong_guesses = [] #Задаём пееменную, в которой храним список неправильных угадываний (букв которые уже названы не правильно)
         self.wrong_guess_count = 0 #Счетчик ошибок
@@ -29,33 +29,33 @@ class Hangman():
         self.gallow_color = (0, 0, 0) #Задаём цвет для виселицы, в моём случае чёртный
         self.body_color = (244, 213, 187) #Задаём цвет человечка, который висит на виселице
 
-        self.font = pygame.font.SysFont("Cascadia", 40) #Задаём шрифт и размер
+        self.font = pygame.font.SysFont("Cascadia", 50) #Задаём шрифт и размер
         self.FPS = pygame.time.Clock() #Создаём объект таймера, который регулирует чистоту обновления экрана(ФПС)
 
 
     def _gallow(self): #Функция внутри класса, которая отрисовывать виселицу 
         
         #Отрисовка по координатам x и y (1 и 2 цифры), так же указывает ширину и высоту (3 и 4 цифры)
-        stand = pygame.draw.rect(screen, self.gallow_color, pygame.Rect(400, 450, 200, 10)) 
-        body = pygame.draw.rect(screen, self.gallow_color, pygame.Rect(495, 180, 10, 280))
-        hanger = pygame.draw.rect(screen, self.gallow_color, pygame.Rect(495, 180, 150, 10))
-        rope = pygame.draw.rect(screen, self.gallow_color, pygame.Rect(570, 180, 10, 45))
+        stand = pygame.draw.rect(screen, self.gallow_color, pygame.Rect(100, 600, 260, 15)) 
+        body = pygame.draw.rect(screen, self.gallow_color, pygame.Rect(225, 100, 13, 500))
+        hanger = pygame.draw.rect(screen, self.gallow_color, pygame.Rect(230, 100, 220, 11))
+        rope = pygame.draw.rect(screen, self.gallow_color, pygame.Rect(338, 110, 10, 50))
 
 
     # Отрисовчка частей человечка (числа в квадратных скобках это коодинаты x и y)
     def _man_pieces(self):
         if self.wrong_guess_count == 1:
-            head = pygame.draw.circle(screen, self.body_color, [575, 246], 23, 0)
+            head = pygame.draw.circle(screen, self.body_color, [343, 200], 40, 0)
         elif self.wrong_guess_count == 2:
-            body = pygame.draw.rect(screen, self.body_color, pygame.Rect(570, 260, 10, 68))
+            body = pygame.draw.rect(screen, self.body_color, pygame.Rect(335, 230, 17, 160))
         elif self.wrong_guess_count == 3:
-            r_arm = pygame.draw.line(screen, self.body_color, [546, 321], [571, 280], 8)
+            r_arm = pygame.draw.line(screen, self.body_color, [290, 360], [340, 250], 15)
         elif self.wrong_guess_count == 4:
-            l_arm = pygame.draw.line(screen, self.body_color, [605, 320], [575, 278], 8),
+            l_arm = pygame.draw.line(screen, self.body_color, [400, 360], [348, 252], 15),
         elif self.wrong_guess_count == 5:
-            r_leg = pygame.draw.line(screen, self.body_color, [552, 373], [575, 323], 8),
+            r_leg = pygame.draw.line(screen, self.body_color, [552, 373], [335, 323], 8),
         elif self.wrong_guess_count == 6:
-            l_leg = pygame.draw.line(screen, self.body_color, [597, 370], [572, 320], 8)
+            l_leg = pygame.draw.line(screen, self.body_color, [597, 370], [335, 320], 8)
 
 
     def _right_guess(self, guess_letter): #Эта функция будет вызваться когда пользователь угадал букву
@@ -65,7 +65,7 @@ class Hangman():
         for i in index_positions: #Перебираем все найденные позиции
             #Далее мы указываем куда встать нашим угаданным буквам 
             self.guessed_word = self.guessed_word[0:i] + guess_letter + self.guessed_word[i+1:] 
-        screen.fill(pygame.Color(self.background_color), (10, 370, 390, 20)) 
+        #screen.fill(pygame.Color(self.background_color), (10, 370, 390, 20)) 
 
 
     def _wrong_guess(self, guess_letter): #Эта функция будет вызывать когда пользователь не угадал букву
@@ -91,28 +91,28 @@ class Hangman():
             
         elif self.wrong_guess_count == 6:
             self.taking_guess = False #Есл мы 6 раз ответили неверно, то игра заканчивается
-            screen.fill(pygame.Color("grey"), (40, 218, 320, 30))
+            #screen.fill(pygame.Color("grey"), (40, 218, 320, 30))
             message = self.font.render("   Вы проиграли!!", True, (150,0,10))
             screen.blit(message,(78,224)) #Отрисовка сообщения о том что мы проиграли
 
             word = self.font.render(f"слово: {self.secret_word}", True, (255,255,255))
             screen.blit(word,(10,300)) #Отрисовка с загаданным словом, появляется когда мы проиграли
 
-        if not self.taking_guess: #Срабатывает когда мы выиграли или проиграли
-            screen.fill(pygame.Color(self.background_color), (35, 460, 390, 20))
+        #if not self.taking_guess: #Срабатывает когда мы выиграли или проиграли
+            #screen.fill(pygame.Color(self.background_color), (35, 460, 390, 20))
 
 
     def main(self):
         screen.fill(self.background_color) #Заливаем весь экран заданный нами цветом
         self._gallow() #Риуем висилицу 
         instructions = self.font.render('Введите любую букву', True, (125,0,0)) #Выводим текст на экран (Введите любую букву)
-        screen.blit(instructions,(35,460)) #Ставляем нужный нам текст по координатам
+        screen.blit(instructions,(680,150)) #Ставляем нужный нам текст по координатам
 
         while self.running: #Запуска цикл
             guessed_word = self.font.render(f"Слово: {self.guessed_word}", True, (0,0,0)) 
-            screen.blit(guessed_word,(10,370)) #Создаем изображение строки с текущим состоянием угаданного слова
+            screen.blit(guessed_word,(680,200)) #Создаем изображение строки с текущим состоянием угаданного слова
             wrong_guesses = self.font.render(f"Ошибки: {' '.join(map(str, self.wrong_guesses))}", True, (0,0,0))
-            screen.blit(wrong_guesses,(10,420)) #Создаём строку с перечнем неправильных букв
+            screen.blit(wrong_guesses,(680,300)) #Создаём строку с перечнем неправильных букв
 
             self._message() #Вызываем при допольнительный сообщениях (О победе, о поражениях)
         
