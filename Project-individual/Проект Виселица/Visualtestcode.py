@@ -12,7 +12,7 @@ russian_letters = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬ�
                   'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'
 class Hangman():
     def __init__(self): #Создаём основной класс и функцию, который будет отвечать за логику игры
-        with open("./__pycache__\Проект Виселица\words.txt.txt", "r", encoding= "UTF-8") as file: 
+        with open("Project-individual\Проект Виселица\words.txt.txt", "r", encoding= "UTF-8") as file: 
             #Эта строка автоматические открывает файл и закрывает по завершению выполнения блока кода
             #По заданному нами пути, "r" - мы даём понять что этот файл мы открывает только для чтения
             #encoding= "UTF-8" - кодировка файла, чтобы правильно читать символы
@@ -49,13 +49,13 @@ class Hangman():
         elif self.wrong_guess_count == 2:
             body = pygame.draw.rect(screen, self.body_color, pygame.Rect(335, 230, 17, 160))
         elif self.wrong_guess_count == 3:
-            r_arm = pygame.draw.line(screen, self.body_color, [290, 360], [340, 250], 15)
+            r_arm = pygame.draw.line(screen, self.body_color, [290, 360], [338, 252], 15)
         elif self.wrong_guess_count == 4:
             l_arm = pygame.draw.line(screen, self.body_color, [400, 360], [348, 252], 15),
         elif self.wrong_guess_count == 5:
-            r_leg = pygame.draw.line(screen, self.body_color, [552, 373], [335, 323], 8),
+            r_leg = pygame.draw.line(screen, self.body_color, [405, 500], [344, 385], 16),
         elif self.wrong_guess_count == 6:
-            l_leg = pygame.draw.line(screen, self.body_color, [597, 370], [335, 320], 8)
+            l_leg = pygame.draw.line(screen, self.body_color, [283,503], [340, 385], 16)
 
 
     def _right_guess(self, guess_letter): #Эта функция будет вызваться когда пользователь угадал букву
