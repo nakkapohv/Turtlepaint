@@ -1,93 +1,229 @@
 import pygame
 from pygame.locals import *
 
-import random #имортируем библиотеку random
+import random
 
-pygame.init() #Инициализация библиотеки PyGame, настраиваем систему отображения 
-pygame.font.init() #инициализируем модуль шрифтов
+pygame.init()
+pygame.font.init()
 
-screen = pygame.display.set_mode((1000, 700)) #Задаём размеры нашему окну
-pygame.display.set_caption("Hangman") #Задаём название окна
+# Константы экрана
+SCREEN_WIDTH = 1000
+SCREEN_HEIGHT = 700
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Hangman")
+
+# Цвета
+BACKGROUND_COLOR = (167, 199, 231)        # нежно-голубой для игры
+MENU_BG_COLOR = (80, 45, 20)               # тёмный шоколадный
+BUTTON_COLOR = (0, 150, 0)                 # зелёный
+BUTTON_HOVER_COLOR = (0, 200, 0)           # ярче при наведении
+BUTTON_TEXT_COLOR = (255, 255, 255)        # белый
+GALLOW_COLOR = (0, 0, 0)                   # чёрный для виселицы
+GALLOW_WOOD_COLOR = (101, 67, 33)          # коричневый для текстуры дерева
+
 russian_letters = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ' \
                   'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'
 
 
+class Button:
+    def __init__(self, x, y, width, height, text, font, color, hover_color, text_color):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.text = text
+        self.font = font
+        self.color = color
+        self.hover_color = hover_color
+        self.text_color = text_color
+        self.is_hovered = False
+        self.border_radius = 25
+
+    def draw(self, surface, alpha=255):
+        color = self.hover_color if self.is_hovered else self.color
+        # Создаём временную поверхность для кнопки, чтобы применить альфа-канал
+        button_surf = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
+        pygame.draw.rect(button_surf, (*color, alpha), button_surf.get_rect(), border_radius=self.border_radius)
+        # Текст
+        text_surf = self.font.render(self.text, True, self.text_color)
+        text_surf.set_alpha(alpha)
+        text_rect = text_surf.get_rect(center=(self.rect.width // 2, self.rect.height // 2))
+        button_surf.blit(text_surf, text_rect)
+        surface.blit(button_surf, self.rect)
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEMOTION:
+            self.is_hovered = self.rect.collidepoint(event.pos)
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.is_hovered:
+                return True
+        return False
+
+
+class Menu:
+    def __init__(self, screen):
+        self.screen = screen
+        self.font = pygame.font.SysFont("Arial Black", 70)          # для кнопок
+        self.small_font = pygame.font.SysFont("Arial", 20)         # для подписи
+        self.clock = pygame.time.Clock()
+        self.running = True
+
+        # Кнопки
+        button_width = 450
+        button_height = 140
+        center_x = SCREEN_WIDTH // 2
+        first_button_center_y = SCREEN_HEIGHT // 2 - 80
+        second_button_center_y = SCREEN_HEIGHT // 2 + 80
+
+        self.play_button = Button(
+            center_x - button_width // 2, first_button_center_y - button_height // 2,
+            button_width, button_height,
+            "Играть", self.font, BUTTON_COLOR, BUTTON_HOVER_COLOR, BUTTON_TEXT_COLOR
+        )
+        self.exit_button = Button(
+            center_x - button_width // 2, second_button_center_y - button_height // 2,
+            button_width, button_height,
+            "Выход", self.font, BUTTON_COLOR, BUTTON_HOVER_COLOR, BUTTON_TEXT_COLOR
+        )
+
+    def fade_out(self):
+        """Плавное затемнение экрана (переход)"""
+        fade_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        fade_surface.fill((0, 0, 0))
+        for alpha in range(0, 255, 5):
+            fade_surface.set_alpha(alpha)
+            self.screen.fill(MENU_BG_COLOR)
+            self.play_button.draw(self.screen)
+            self.exit_button.draw(self.screen)
+            signature = self.small_font.render("Created by Nakka", True, (255, 215, 0))
+            signature_rect = signature.get_rect(bottomright=(980, 680))
+            self.screen.blit(signature, signature_rect)
+            self.screen.blit(fade_surface, (0, 0))
+            pygame.display.flip()
+            self.clock.tick(60)
+
+    def run(self):
+        while self.running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                    return "exit"
+                if self.play_button.handle_event(event):
+                    self.fade_out()
+                    self.running = False
+                    return "play"
+                if self.exit_button.handle_event(event):
+                    self.running = False
+                    return "exit"
+
+            self.screen.fill(MENU_BG_COLOR)
+            self.play_button.draw(self.screen)
+            self.exit_button.draw(self.screen)
+
+            signature = self.small_font.render("Created by Nakka", True, (255, 215, 0))
+            signature_rect = signature.get_rect(bottomright=(980, 680))
+            self.screen.blit(signature, signature_rect)
+
+            pygame.display.flip()
+            self.clock.tick(60)
+
+        return "exit"
+
+
 class Hangman():
-    def __init__(self): #Создаём основной класс и функцию, который будет отвечать за логику игры
-        with open("Project-individual\\Проект Виселица\\words.txt.txt", "r", encoding="UTF-8") as file:
+    def __init__(self):
+        with open("words.txt", "r", encoding="UTF-8") as file:
             words = [w.strip() for w in file.read().split("\n") if w.strip()]
             self.secret_word = random.choice(words)
 
-            # NEW — первая буква всегда заглавная
             if self.secret_word:
                 self.secret_word = self.secret_word[0].upper() + self.secret_word[1:]
 
-            # хранить угаданное слово как список символов (по одному элементу на позицию)
-            self.guessed_word = [" "] * len(self.secret_word)
-        
-        self.wrong_guesses = [] #Задаём пееменную, в которой храним список неправильных угадываний (букв которые уже названы не правильно)
-        self.wrong_guess_count = 0 #Счетчик ошибок
-        self.taking_guess = True # #Логическая переменная (Флаг), указывающий, что игра продолжается и можно вводить буквы
-        self.running = True #Флаг, который контролирует главный цикл игры, пока он равен True - игра продолжается
+            self.guessed_word = ["_"] * len(self.secret_word)
 
-        self.background_color = (168, 184, 208) #Задаём цвет фона, в моём случае это кремовый 
-        self.gallow_color = (0, 0, 0) #Задаём цвет для виселицы, в моём случае чёртный
-        self.body_color = (244, 213, 187) #Задаём цвет человечка, который висит на виселице
+        self.wrong_guesses = []
+        self.wrong_guess_count = 0
+        self.taking_guess = True
+        self.running = True
+        self.game_over = False    # флаг окончания игры
+        self.win = False          # True если победа, False если поражение
 
-        self.font = pygame.font.SysFont("Cascadia", 50) #Задаём шрифт и размер
-        self.FPS = pygame.time.Clock() #Создаём объект таймера, который регулирует чистоту обновления экрана(ФПС)
+        self.background_color = BACKGROUND_COLOR
+        self.body_color = (244, 213, 187)
+        self.tongue_color = (255, 0, 0)
 
+        self.font = pygame.font.SysFont("Arial Black", 35)
+        self.big_font = pygame.font.SysFont("Arial Black", 100)
+        self.small_font = pygame.font.SysFont("Arial", 20)
+        self.FPS = pygame.time.Clock()
 
-    def _gallow(self): #Функция внутри класса, которая отрисовывать виселицу 
-        
-        #Отрисовка по координатам x и y (1 и 2 цифры), так же указывает ширину и высоту (3 и 4 цифры)
-        stand = pygame.draw.rect(screen, self.gallow_color, pygame.Rect(100, 600, 260, 15)) 
-        body = pygame.draw.rect(screen, self.gallow_color, pygame.Rect(225, 100, 13, 500))
-        hanger = pygame.draw.rect(screen, self.gallow_color, pygame.Rect(230, 100, 220, 11))
-        rope = pygame.draw.rect(screen, self.gallow_color, pygame.Rect(338, 110, 10, 50))
+    def _draw_fancy_gallow(self):
+        """Отрисовка виселицы в игровом стиле (скруглённые углы + текстура дерева)"""
+        # Основание
+        pygame.draw.rect(screen, GALLOW_COLOR, pygame.Rect(100, 600, 260, 15), border_radius=7)
+        # Вертикальная стойка
+        pygame.draw.rect(screen, GALLOW_COLOR, pygame.Rect(225, 100, 13, 500), border_radius=6)
+        # Горизонтальная перекладина
+        pygame.draw.rect(screen, GALLOW_COLOR, pygame.Rect(230, 100, 220, 11), border_radius=5)
+        # Верёвка
+        pygame.draw.rect(screen, GALLOW_COLOR, pygame.Rect(338, 110, 10, 50), border_radius=3)
 
+        # Текстура дерева
+        wood_color = GALLOW_WOOD_COLOR
+        for y in range(150, 550, 30):
+            pygame.draw.line(screen, wood_color, (230, y), (233, y), 2)
+        for x in range(240, 430, 30):
+            pygame.draw.line(screen, wood_color, (x, 105), (x, 108), 2)
 
-    # Отрисовчка частей человечка (числа в квадратных скобках это коодинаты x и y)
     def _man_pieces(self):
-        # Рисуем на каждом кадре те части, которые уже открыты (>=), чтобы не полагаться на вызов в момент ошибки
-        if self.wrong_guess_count >= 1:
+        if self.win and self.wrong_guess_count > 0 and self.game_over:
+            # Улыбающееся лицо при победе (если были ошибки)
             pygame.draw.circle(screen, self.body_color, [343, 200], 40, 0)
-        if self.wrong_guess_count >= 2:
-            pygame.draw.rect(screen, self.body_color, pygame.Rect(335, 230, 17, 160))
-        if self.wrong_guess_count >= 3:
-            pygame.draw.line(screen, self.body_color, [290, 360], [338, 252], 15)
-        if self.wrong_guess_count >= 4:
-            pygame.draw.line(screen, self.body_color, [400, 360], [348, 252], 15)
-        if self.wrong_guess_count >= 5:
-            pygame.draw.line(screen, self.body_color, [405, 500], [344, 385], 16)
-        if self.wrong_guess_count >= 6:
-            pygame.draw.line(screen, self.body_color, [283,503], [340, 385], 16)
+            pygame.draw.circle(screen, GALLOW_COLOR, [330, 190], 7, 0)
+            pygame.draw.circle(screen, GALLOW_COLOR, [356, 190], 7, 0)
+            pygame.draw.arc(screen, GALLOW_COLOR, [328, 210, 30, 20], 3.14, 0, 3)  # улыбка
+        else:
+            if self.wrong_guess_count >= 1:
+                pygame.draw.circle(screen, self.body_color, [343, 200], 40, 0)
 
+                if self.wrong_guess_count == 6:
+                    # Мёртвые глаза
+                    pygame.draw.line(screen, GALLOW_COLOR, [325, 185], [335, 195], 3)
+                    pygame.draw.line(screen, GALLOW_COLOR, [335, 185], [325, 195], 3)
+                    pygame.draw.line(screen, GALLOW_COLOR, [351, 185], [361, 195], 3)
+                    pygame.draw.line(screen, GALLOW_COLOR, [361, 185], [351, 195], 3)
+                    # Рот с языком
+                    pygame.draw.ellipse(screen, (200, 0, 0), [328, 215, 30, 20])
+                    pygame.draw.ellipse(screen, self.tongue_color, [338, 225, 10, 15])
+                    pygame.draw.ellipse(screen, GALLOW_COLOR, [328, 215, 30, 20], 2)
+                else:
+                    # Живые глаза
+                    pygame.draw.circle(screen, GALLOW_COLOR, [330, 190], 7, 0)
+                    pygame.draw.circle(screen, GALLOW_COLOR, [356, 190], 7, 0)
+                    # Нейтральный рот
+                    pygame.draw.line(screen, GALLOW_COLOR, [333, 220], [353, 220], 3)
 
-    def _right_guess(self, guess_letter): #Эта функция будет вызваться когда пользователь угадал букву
-        # NEW — сравнение без учёта регистра
-        index_positions = [
-            index for index, item in enumerate(self.secret_word)
-            if item.lower() == guess_letter.lower()
-        ]
+            if self.wrong_guess_count >= 2:
+                pygame.draw.rect(screen, self.body_color, pygame.Rect(335, 230, 17, 160))
+            if self.wrong_guess_count >= 3:
+                pygame.draw.line(screen, self.body_color, [290, 360], [338, 252], 15)
+            if self.wrong_guess_count >= 4:
+                pygame.draw.line(screen, self.body_color, [400, 360], [348, 252], 15)
+            if self.wrong_guess_count >= 5:
+                pygame.draw.line(screen, self.body_color, [405, 500], [344, 385], 16)
+            if self.wrong_guess_count >= 6:
+                pygame.draw.line(screen, self.body_color, [283, 503], [340, 385], 16)
 
-        for i in index_positions: #Перебираем все найденные позиции
-            # вставляем оригинальную букву (с правильным регистром)
+    def _right_guess(self, guess_letter):
+        indices = [i for i, ch in enumerate(self.secret_word) if ch.lower() == guess_letter.lower()]
+        for i in indices:
             self.guessed_word[i] = self.secret_word[i]
 
+    def _wrong_guess(self, guess_letter):
+        self.wrong_guesses.append(guess_letter.lower())
+        self.wrong_guess_count += 1
 
-    def _wrong_guess(self, guess_letter): #Эта функция будет вызывать когда пользователь не угадал букву
-        self.wrong_guesses.append(guess_letter.lower()) # NEW — сохраняем в одном регистре
-        self.wrong_guess_count += 1 #Переменная которая считает, сколько неправильных догадок 
-
-
-    def _guess_taker(self, guess_letter): #Эта функкция будет вызваться когда мы вводим букву
+    def _guess_taker(self, guess_letter):
         if not guess_letter or len(guess_letter) != 1:
             return
-
-        if guess_letter in russian_letters: #Говорим что используем русскую кириллицу 
-
-            # NEW — сравнение без учёта регистра
+        if guess_letter in russian_letters:
             gl = guess_letter.lower()
             secret_lower = [c.lower() for c in self.secret_word]
             guessed_lower = [c.lower() for c in self.guessed_word]
@@ -98,79 +234,171 @@ class Hangman():
             elif gl not in secret_lower and gl not in wrong_lower:
                 self._wrong_guess(guess_letter)
 
-
-    def _message(self): #Проверка состояния игры и отрабражения слова
-        # сравниваем собранную строку (без пробелов) с секретным словом
-        if ''.join(self.guessed_word) == self.secret_word: #Проверка выиграл ли игрок
-            self.taking_guess = False #Если выиграл, то прекращает ввод
-            screen.fill(pygame.Color(0,0,79), (40, 218, 320, 30))
-            message = self.font.render("Вы победили!!", True, (255,235,0))
-            screen.blit(message,(152,224)) #Отрисовка сообщения о том что мы выиграли
-            
+    def _message(self):
+        if ''.join(self.guessed_word) == self.secret_word:
+            self.taking_guess = False
+            self.game_over = True
+            self.win = True
         elif self.wrong_guess_count == 6:
-             self.taking_guess = False
-             self._dark_souls_lose_screen()
+            self.taking_guess = False
+            self.game_over = True
+            self.win = False
 
-    def _dark_souls_lose_screen(self):
-    # Создаём полупрозрачную поверхность размером с экран
-    
-        overlay = pygame.Surface((1000, 700))
-        overlay.set_alpha(180)  # Прозрачность (0-255). 180 = сильное затемнение
-        overlay.fill((0, 0, 0))  # Чёрный цвет
+    def _show_end_screen(self):
+        """Отображает финальный экран с плавно появляющимися горизонтальными кнопками."""
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        overlay.set_alpha(180)
+        overlay.fill((0, 0, 0))
 
-    # Накладываем затемнение
-        screen.blit(overlay, (0, 0))
+        # Текст результата
+        if self.win:
+            result_text = self.big_font.render("ВЫ ПОБЕДИЛИ", True, (50, 205, 50))
+        else:
+            result_text = self.big_font.render("ВЫ ПРОИГРАЛИ", True, (180, 0, 0))
+        word_text = self.font.render(f"Слово: {self.secret_word}", True, (255, 255, 255))
 
-    # Большой шрифт для надписи
-        big_font = pygame.font.SysFont("Cascadia", 100)
+        # Кнопки (горизонтально) с шириной 300
+        button_font = pygame.font.SysFont("Arial Black", 40)
+        button_width = 300
+        button_height = 70
+        spacing = 30
+        total_width = 2 * button_width + spacing
+        start_x = (SCREEN_WIDTH - total_width) // 2
 
-        lose_text = big_font.render("ВЫ ПРОИГРАЛИ", True, (180, 0, 0))
-        word_text = self.font.render(f"Правильное слово: {self.secret_word}", True, (255, 255, 255))
+        continue_button = Button(
+            start_x, 420, button_width, button_height,
+            "Продолжить", button_font, BUTTON_COLOR, BUTTON_HOVER_COLOR, BUTTON_TEXT_COLOR
+        )
+        exit_button = Button(
+            start_x + button_width + spacing, 420, button_width, button_height,
+            "Выход", button_font, BUTTON_COLOR, BUTTON_HOVER_COLOR, BUTTON_TEXT_COLOR
+        )
 
-    # Центрируем текст
-        lose_rect = lose_text.get_rect(center=(500, 300))
-        word_rect = word_text.get_rect(center=(500, 420))
+        clock = pygame.time.Clock()
+        alpha = 0
+        # Анимация появления кнопок
+        while alpha < 255:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return "exit"
+            # Перерисовываем игровой фон
+            screen.fill(self.background_color)
+            self._draw_fancy_gallow()
+            self._man_pieces()
+            signature = self.small_font.render("Created by Nakka", True, (255, 215, 0))
+            signature_rect = signature.get_rect(bottomright=(980, 680))
+            screen.blit(signature, signature_rect)
+            # Затемнение
+            screen.blit(overlay, (0, 0))
+            # Текст результата
+            result_rect = result_text.get_rect(center=(500, 300))
+            screen.blit(result_text, result_rect)
+            word_rect = word_text.get_rect(center=(500, 380))
+            screen.blit(word_text, word_rect)
+            # Рисуем кнопки с текущей прозрачностью
+            continue_button.draw(screen, alpha)
+            exit_button.draw(screen, alpha)
 
-        screen.blit(lose_text, lose_rect)
-        screen.blit(word_text, word_rect)
+            pygame.display.flip()
+            alpha += 5
+            clock.tick(60)
 
+        # После анимации ждём нажатия
+        waiting = True
+        while waiting:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return "exit"
+                if continue_button.handle_event(event):
+                    return "menu"
+                if exit_button.handle_event(event):
+                    return "exit"
 
-    def main(self):
-        screen.fill(self.background_color) #Заливаем весь экран заданный нами цвет
-        self._gallow() #Риуем висилицу 
-        instructions = self.font.render('Введите любую букву', True, (36, 1, 69)) #Выводим текст на экран (Введите любую букву)
-        screen.blit(instructions,(680,150)) #Ставляем нужный нам текст по координатам
+            # Перерисовываем всё так же
+            screen.fill(self.background_color)
+            self._draw_fancy_gallow()
+            self._man_pieces()
+            signature = self.small_font.render("Created by Nakka", True, (255, 215, 0))
+            signature_rect = signature.get_rect(bottomright=(980, 680))
+            screen.blit(signature, signature_rect)
+            screen.blit(overlay, (0, 0))
+            result_rect = result_text.get_rect(center=(500, 300))
+            screen.blit(result_text, result_rect)
+            word_rect = word_text.get_rect(center=(500, 380))
+            screen.blit(word_text, word_rect)
+            continue_button.draw(screen)
+            exit_button.draw(screen)
 
-        while self.running: #Запуска цикл
-            # рисуем виселицу и уже набранные части (на каждый кадр)
-            self._gallow()
+            pygame.display.flip()
+            clock.tick(60)
+
+        return "menu"
+
+    def run(self):
+        screen.fill(self.background_color)
+        self._draw_fancy_gallow()
+        instructions = self.font.render('Введите любую букву', True, (255, 255, 255))
+        instr_rect = instructions.get_rect(center=(720, 200))
+        screen.blit(instructions, instr_rect)
+        pygame.display.flip()
+
+        while self.running:
+            screen.fill(self.background_color)
+            self._draw_fancy_gallow()
+            screen.blit(instructions, instr_rect)
             self._man_pieces()
 
-            # отображаем слово с пробелами между буквами/подчёркиваниями (координаты не менял)
-            guessed_word_s = ' '.join(self.guessed_word)
-            guessed_word = self.font.render(f"Слово: {guessed_word_s}", True, (0, 8, 62))
-            screen.blit(guessed_word,(680,200)) #КОГДА: координата сохранена как (680, 200)
+            display_word = ' '.join(self.guessed_word)
+            guessed_word = self.font.render(f"Слово: {display_word}", True, (0, 0, 139))
+            word_rect = guessed_word.get_rect(center=(720, 300))
+            screen.blit(guessed_word, word_rect)
 
-            # отображаем ошибки (также без изменений координат)
-            wrong_guesses = self.font.render(f"Ошибки: {' '.join(self.wrong_guesses)}", True, (0, 8, 62))
-            screen.blit(wrong_guesses,(680,300)) #КОГДА: координата сохранена как (680, 300)
+            if self.wrong_guesses:
+                wrong_display = ' '.join(self.wrong_guesses)
+            else:
+                wrong_display = ''
+            wrong_guesses = self.font.render(f"Ошибки: {wrong_display}", True, (200, 0, 0))
+            wrong_rect = wrong_guesses.get_rect(center=(720, 400))
+            screen.blit(wrong_guesses, wrong_rect)
 
-            self._message() #Вызываем при допольнительный сообщениях (О победе, о поражениях)
-        
-            for self.event in pygame.event.get():
-                if self.event.type == pygame.QUIT:
-                    self.running = False #Выход из программы и цикла, завершить игру в любой момент
+            signature = self.small_font.render("Created by Nakka", True, (255, 215, 0))
+            signature_rect = signature.get_rect(bottomright=(980, 680))
+            screen.blit(signature, signature_rect)
 
-                elif self.event.type == pygame.KEYDOWN: #Вызывается когда мы нажимаем любую клавишу на клавиатуры
-                    if self.taking_guess: #Контролирует можно ли сейчас вводить буквы
-                        self._guess_taker(self.event.unicode) #Делаем так чтобы заглавные и строчные буквы подходили в любом случае
+            self._message()
 
-            pygame.display.flip() #Обновляет весь экран целиком, используется для отобрежния измененй
-            self.FPS.tick(60) #ставил лок и контроль частоты кадров (ФПС)
+            if self.game_over:
+                result = self._show_end_screen()
+                return result
 
-        pygame.quit() #Заверашем работу(выходим)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                    return "exit"
+                elif event.type == pygame.KEYDOWN and self.taking_guess:
+                    self._guess_taker(event.unicode)
+
+            pygame.display.flip()
+            self.FPS.tick(60)
+
+        return "menu"
 
 
-if __name__ =="__main__": #Запущен ли скрипт напрямую (а не импортирован как модуль)
-    h = Hangman() #Класс самой игры, вызывается
-    h.main() #Вызываем саму игру, запускаем
+def main():
+    while True:
+        menu = Menu(screen)
+        choice = menu.run()
+        if choice == "exit":
+            break
+        elif choice == "play":
+            game = Hangman()
+            result = game.run()
+            if result == "exit":
+                break
+            # иначе (result == "menu") возвращаемся в меню
+
+    pygame.quit()
+
+
+if __name__ == "__main__":
+    main()
